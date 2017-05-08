@@ -8,3 +8,4 @@ Kong gateway for API's of Global Digital Library
     ./build.sh
 
 You need to have a docker daemon running locally.
+
