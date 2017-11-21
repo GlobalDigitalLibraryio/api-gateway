@@ -1,4 +1,4 @@
-FROM kong:0.10.1
+FROM kong:0.10.4
 
 COPY gdl-run-kong.sh /gdl-run-kong.sh
 RUN chmod +x /gdl-run-kong.sh
