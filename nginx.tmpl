@@ -31,8 +31,6 @@ http {
     set $api_gateway       '127.0.0.1:8000';
 
     location ~* ^/image-api/(v.*)/raw/(.*) {
-
-    
       set_by_lua_block $gdl_env { return os.getenv("GDL_ENVIRONMENT") }
       set $s3_bucket        's3.eu-central-1.amazonaws.com/$gdl_env.images.gdl';
       set $url_image        'http://$images/image-api/$1/raw/$2$is_args$args';
@@ -53,16 +51,6 @@ http {
       expires 30d;
     }
 
-    location ~* ^/reading-materials-api/epub/(.*) {
-      set_by_lua_block $gdl_env { return os.getenv("GDL_ENVIRONMENT") }
-      set $s3_bucket        's3.eu-central-1.amazonaws.com/$gdl_env.reading-materials.gdl';
-      set $url_epub         'https://$s3_bucket/epub/$1?';
-
-      proxy_set_header       Referer    'gdl_proxy';
-      proxy_pass             $url_epub;
-
-    }
-
     location ~* ^/book-api/epub/(.*) {
       set_by_lua_block $gdl_env { return os.getenv("GDL_ENVIRONMENT") }
       set $s3_bucket        's3.eu-central-1.amazonaws.com/$gdl_env.books.gdl';
@@ -70,7 +58,6 @@ http {
 
       proxy_set_header       Referer    'gdl_proxy';
       proxy_pass             $url_epub;
-
     }
 
     location ~* ^/health$ {
