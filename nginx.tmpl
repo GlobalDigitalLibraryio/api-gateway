@@ -1,0 +1,77 @@
+worker_processes ${{NGINX_WORKER_PROCESSES}}; # can be set by kong.conf
+daemon ${{NGINX_DAEMON}};                     # can be set by kong.conf
+
+pid pids/nginx.pid;                           # this setting is mandatory
+error_log logs/error.log ${{LOG_LEVEL}};      # can be set by kong.conf
+
+events {
+  #worker_connections  1024;
+}
+
+http {
+  proxy_cache_path /tmp/nginx_cache_image levels=1:2 keys_zone=image_cache:10M max_size=100M inactive=40d;
+
+  # include default Kong Nginx config
+  include 'nginx-kong.conf';
+
+  # Port 79 brukes fra ELB port 80 for å hindre http (redirigere til https)
+  server {
+    listen 79;
+    return 301 https://$host$request_uri;
+  }
+
+  # Port 80 brukes fra ELB port 443
+  server {
+    listen 80;
+    charset UTF-8;
+
+    resolver 127.0.0.11;
+
+    set $images            'image-api.gdl-local';
+    set $api_gateway       '127.0.0.1:8000';
+
+    location ~* ^/image-api/(v.*)/raw/(.*) {
+      set_by_lua_block $gdl_env { return os.getenv("GDL_ENVIRONMENT") }
+      set $s3_bucket        's3.eu-central-1.amazonaws.com/$gdl_env.images.gdl';
+      set $url_image        'http://$images/image-api/$1/raw/$2$is_args$args';
+
+      if ($args = '') {
+        set $url_image      'https://$s3_bucket/$2?';
+      }
+
+      proxy_set_header       Referer    'gdl_proxy';
+      proxy_pass             $url_image;
+
+      proxy_cache image_cache;
+      proxy_cache_key "$proxy_host$uri$is_args$args";
+      proxy_cache_valid 30d;
+      proxy_cache_lock on;
+      proxy_cache_use_stale error invalid_header timeout updating;
+      proxy_http_version 1.1;
+      expires 30d;
+    }
+
+    location ~* ^/book-api/epub/(.*) {
+      set_by_lua_block $gdl_env { return os.getenv("GDL_ENVIRONMENT") }
+      set $s3_bucket        's3.eu-central-1.amazonaws.com/$gdl_env.books.gdl';
+      set $url_epub         'https://$s3_bucket/epub/$1?';
+
+      proxy_set_header       Referer    'gdl_proxy';
+      proxy_pass             $url_epub;
+    }
+
+    location ~* ^/health$ {
+        add_header 'Content-Length' 0;
+        return 200;
+    }
+
+    location ~* ^/([^/]*) {
+      proxy_set_header  Host $http_host;
+      proxy_set_header  X-Real-IP $remote_addr;
+      proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header  Forwarded "for=$remote_addr;proto=$http_x_forwarded_proto";
+      proxy_set_header  X-Forwarded-Prefix /$1;
+      proxy_pass http://$api_gateway;
+    }
+  }
+}
