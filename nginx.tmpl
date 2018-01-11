@@ -14,16 +14,14 @@ http {
   # include default Kong Nginx config
   include 'nginx-kong.conf';
 
-  # Port 79 brukes fra ELB port 80 for å hindre http (redirigere til https)
-  server {
-    listen 79;
-    return 301 https://$host$request_uri;
-  }
-
-  # Port 80 brukes fra ELB port 443
   server {
     listen 80;
     charset UTF-8;
+
+    # Redirect to https
+    if ($http_x_forwarded_proto != "https") {
+      return 301 https://$host$request_uri;
+    }
 
     gzip on;
     gzip_disable "msie6";
