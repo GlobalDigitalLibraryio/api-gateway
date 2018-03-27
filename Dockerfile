@@ -1,12 +1,12 @@
-FROM kong:0.10.4
+FROM kong:0.13.0-alpine
 
 COPY gdl-run-kong.sh /gdl-run-kong.sh
 COPY nginx.tmpl /nginx.tmpl
 
 RUN chmod +x /gdl-run-kong.sh
 
-RUN yum --assumeyes install python-pip jq && \
- pip install awscli
+#RUN yum --assumeyes install python-pip jq && \
+# pip install awscli
 
 # ref https://github.com/Mashape/docker-kong/pull/84/files
 RUN mkdir -p /usr/local/kong/logs \
