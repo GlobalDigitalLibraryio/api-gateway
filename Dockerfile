@@ -5,8 +5,9 @@ COPY nginx.tmpl /nginx.tmpl
 
 RUN chmod +x /gdl-run-kong.sh
 
-#RUN yum --assumeyes install python-pip jq && \
-# pip install awscli
+RUN echo "http://dl-4.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
+
+RUN apk --update add --no-cache jq aws-cli
 
 # ref https://github.com/Mashape/docker-kong/pull/84/files
 RUN mkdir -p /usr/local/kong/logs \
